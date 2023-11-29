@@ -1,0 +1,34 @@
+{
+  "transactions": [
+    {
+      "hash": "0xef0ef82aacd556274af44909c23da2cc60f6637e6957e41522246d6e2100c5a1",
+      "transactionType": "CALL",
+      "contractName": "WETH",
+      "contractAddress": "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+      "function": "deposit()",
+      "arguments": [],
+      "transaction": {
+        "type": "0x02",
+        "from": "0x09c0126087ac47816516f049fe73ee3e8122a42c",
+        "to": "0x7b79995e5f793a07bc00c21412e50ecae098e7f9",
+        "gas": "0x9edf",
+        "value": "0x38d7ea4c68000",
+        "data": "0xd0e30db0",
+        "nonce": "0xd4",
+        "accessList": []
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    }
+  ],
+  "receipts": [],
+  "libraries": [],
+  "pending": [
+    "0xef0ef82aacd556274af44909c23da2cc60f6637e6957e41522246d6e2100c5a1"
+  ],
+  "returns": {},
+  "timestamp": 1701288406,
+  "chain": 11155111,
+  "multi": false,
+  "commit": "fc2d524"
+}
