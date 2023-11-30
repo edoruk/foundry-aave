@@ -7,6 +7,7 @@ import {IWETH} from "../src/interfaces/IWETH.sol";
 import {IPoolAddressesProvider} from "../src/interfaces/IPoolAddressesProvider.sol";
 import {IPool} from "../src/interfaces/IPool.sol";
 import {IERC20} from "../src/interfaces/IERC20.sol";
+import {WETHGetAway} from "../src/interfaces/IWETHGetAway.sol";
 
 // contract GetWETH is Script {
 //     string name;
@@ -16,12 +17,12 @@ import {IERC20} from "../src/interfaces/IERC20.sol";
 
 //     constructor() {
 //         HelperConfig helperConfig = new HelperConfig();
-
 //         (
 //             string memory _name,
 //             address _wethToken,
 //             ,
-//             uint256 _privateKey
+//             uint256 _privateKey,
+
 //         ) = helperConfig.activeNetworkConfig();
 
 //         name = _name;
@@ -29,18 +30,29 @@ import {IERC20} from "../src/interfaces/IERC20.sol";
 //         privateKey = _privateKey;
 //     }
 
-//     function run() external {
-//         return getWETH();
+//     function getWETH() public {
+//         IWETH weth = IWETH(wethToken);
+//         weth.deposit{value: AMOUNT}();
 //     }
-// }
 
-contract AaveBorrow is Script {
+//     function run() external {
+//         vm.startBroadcast(privateKey);
+//         getWETH();
+//         vm.stopBroadcast();
+//     }
+//}
+
+contract Aave is Script {
     string name;
     address wethToken;
     address poolAddressesProvider;
     uint256 privateKey;
+    address accountAddress;
+
+    //IWETH weth;
     IERC20 ERC20;
-    uint256 constant AMOUNT = 0.01 ether;
+    WETHGetAway wethGateaway;
+    uint256 constant AMOUNT = 0.001 ether;
 
     constructor() {
         HelperConfig helperConfig = new HelperConfig();
@@ -49,22 +61,19 @@ contract AaveBorrow is Script {
             string memory _name,
             address _wethToken,
             address _poolAddressesProviderAddress,
-            uint256 _privateKey
+            uint256 _privateKey,
+            address _accountAddress
         ) = helperConfig.activeNetworkConfig();
 
         name = _name;
         wethToken = _wethToken;
         poolAddressesProvider = _poolAddressesProviderAddress;
         privateKey = _privateKey;
+        accountAddress = _accountAddress;
 
-        ERC20 = IERC20(wethToken);
-    }
-
-    function getWETH() public {
-        IWETH weth = IWETH(wethToken);
-        //vm.startBroadcast(privateKey);
-        weth.deposit{value: AMOUNT}();
-        //vm.stopBroadcast();
+        //weth = IWETH(wethToken);
+        //ERC20 = IERC20(wethToken);
+        wethGateaway = WETHGetAway(wethToken);
     }
 
     function getPool() public view returns (IPool) {
@@ -76,28 +85,25 @@ contract AaveBorrow is Script {
         return pool;
     }
 
-    function approveERC20(address _spender, uint256 _amount) public {
-        console.log("Approving ERC20...");
-        //vm.startBroadcast(privateKey);
-        bool success = ERC20.approve(_spender, _amount);
-        //vm.stopBroadcast();
-        console.log("Approving is ", success);
-    }
+    // function approveERC20(address _spender, uint256 _amount) public {
+    //     console.log("Approving ERC20...");
+    //     //vm.startBroadcast(privateKey);
+    //     bool success = ERC20.approve(_spender, _amount);
+    //     //vm.stopBroadcast();
+    //     console.log("Approving is ", success);
+    // }
 
     function run() external {
         vm.startBroadcast(privateKey);
-        getWETH();
         IPool pool = getPool();
         console.log("getPool successful with address: ", address(pool));
-        approveERC20(address(pool), AMOUNT);
+        //approveERC20(address(pool), AMOUNT);
         console.log("Depositting...");
-        pool.deposit(
-            wethToken,
-            AMOUNT,
-            0x09c0126087ac47816516F049fE73Ee3e8122A42c,
+        wethGateaway.depositETH{value: AMOUNT}(
+            address(pool),
+            accountAddress,
             0
         );
-
         console.log("Depositted!");
         vm.stopBroadcast();
     }
