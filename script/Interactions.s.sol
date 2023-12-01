@@ -9,24 +9,25 @@ import {IPool} from "../src/interfaces/IPool.sol";
 import {IERC20} from "../src/interfaces/IERC20.sol";
 import {WETHGetAway} from "../src/interfaces/IWETHGetAway.sol";
 
-contract GetSupply is Script {
-    address payable owner;
+contract AaveSupply is Script {
+    string tokenName;
+
     string name;
-    address wethToken;
+    address wethAddress;
     address linkAddress;
     address poolAddressesProvider;
     uint256 privateKey;
     address accountAddress;
     IPool public immutable pool;
-    IERC20 link;
-    IWETH weth;
-    uint256 constant AMOUNT = 0.01 ether;
+    IERC20 linkToken;
+    IWETH wethToken;
+    uint256 AMOUNT;
 
     constructor() {
         HelperConfig helperConfig = new HelperConfig();
         (
             string memory _name,
-            address _wethToken,
+            address _wethAddress,
             address _linkAddress,
             address _poolAddressesProvider,
             uint256 _privateKey,
@@ -34,7 +35,7 @@ contract GetSupply is Script {
         ) = helperConfig.activeNetworkConfig();
 
         name = _name;
-        wethToken = _wethToken;
+        wethAddress = _wethAddress;
         linkAddress = _linkAddress;
         poolAddressesProvider = _poolAddressesProvider;
         privateKey = _privateKey;
@@ -44,8 +45,7 @@ contract GetSupply is Script {
             poolAddressesProvider
         );
         pool = IPool(provider.getPool());
-        owner = payable(msg.sender);
-        link = IERC20(linkAddress);
+        linkToken = IERC20(linkAddress);
     }
 
     function supplyLiquidity(address _tokenAddress, uint256 _amount) public {
@@ -89,49 +89,36 @@ contract GetSupply is Script {
         uint256 _amount,
         address _poolContractAddress
     ) public returns (bool) {
-        return link.approve(_poolContractAddress, _amount);
+        return linkToken.approve(_poolContractAddress, _amount);
     }
 
     function allowanceLINK(
         address _poolContractAddress
     ) public view returns (uint256) {
-        return link.allowance(address(accountAddress), _poolContractAddress);
+        return
+            linkToken.allowance(address(accountAddress), _poolContractAddress);
     }
 
     function getBalance(address _tokenAddress) external view returns (uint256) {
         return IERC20(_tokenAddress).balanceOf(address(this));
     }
 
-    function withdraw(address _tokenAddress) external onlyOwner {
+    function withdraw(address _tokenAddress) external {
         IERC20 token = IERC20(_tokenAddress);
         token.transfer(msg.sender, token.balanceOf(address(this)));
     }
 
-    modifier onlyOwner() {
-        require(
-            msg.sender == owner,
-            "Only the contract owner can call this function"
-        );
-        _;
-    }
-
-    // function getUSDC() public {
-    //     weth = IWETH(link);
-    //     weth.deposit{value: AMOUNT}();
-    // }
-
-    // function getPool() public view returns (IPool) {
-    //     address pool = provider.getPool();
-
-    //     return pool;
-    // }
-
-    function run() external {
+    function run(uint256 _amount) external {
+        AMOUNT = _amount;
         vm.startBroadcast(privateKey);
         bool success = approveLINK(AMOUNT, address(pool));
         console.log("Approving is: ", success);
         uint256 allowance = allowanceLINK(address(pool));
         console.log("Allowance is: ", allowance);
+
+        console.log("Depositting...");
+        supplyLiquidity(linkAddress, AMOUNT);
+        console.log(AMOUNT, " Link is supplied.");
         (
             uint256 totalCollateralBase,
             uint256 totalDebtBase,
@@ -140,23 +127,20 @@ contract GetSupply is Script {
             uint256 ltv,
             uint256 healthFactor
         ) = getUserAccountData(accountAddress);
-        console.log("HF: ", healthFactor, "availableb: ", availableBorrowsBase);
-        supplyLiquidity(linkAddress, AMOUNT);
-        console.log("Link supplied.");
-        // getUSDC();
-        // IPool pool = getPool();
-        // console.log("getPool successful with address: ", address(pool));
+        console.log("----ACCOUNT DETAILS----");
+        console.log("TCB: %d", totalCollateralBase);
+        console.log("ABB: %d", availableBorrowsBase);
+        console.log("TDB: %d", totalDebtBase);
+        console.log("CLT: %d", currentLiquidationThreshold);
+        console.log("ltv: %d", ltv);
+        console.log("HF: %d", healthFactor);
+        console.log("------------------------");
 
-        // bool success = ERC20.approve(address(pool), AMOUNT);
-        // console.log("approved: ", success);
-        // console.log("Depositting...");
-        // pool.supply(address(ERC20), AMOUNT, accountAddress, 0);
-        // console.log("Supplied!");
         vm.stopBroadcast();
     }
 }
 
-contract Aave is Script {
+contract AaveWETHGateway is Script {
     string name;
     address wethToken;
     address poolAddressesProvider;
@@ -212,9 +196,6 @@ contract Aave is Script {
         vm.startBroadcast(privateKey);
         IPool pool = getPool();
         console.log("getPool successful with address: ", address(pool));
-
-        //approveERC20(address(pool), AMOUNT);
-
         console.log("Depositting...");
         wethGateaway.depositETH{value: AMOUNT}(
             address(pool),
@@ -222,8 +203,6 @@ contract Aave is Script {
             0
         );
         console.log("Depositted!");
-        //pool.supply(address(ERC20), 0.001 ether, accountAddress, 0);
-
         vm.stopBroadcast();
     }
 }
