@@ -7,6 +7,7 @@ contract HelperConfig is Script {
     struct NetworkConfig {
         string name;
         address wethToken;
+        address link;
         address poolAddressesProvider;
         uint256 privateKey;
         address accountAddress;
@@ -25,6 +26,7 @@ contract HelperConfig is Script {
             NetworkConfig({
                 name: "sepolia",
                 wethToken: 0x387d311e47e80b498169e6fb51d3193167d89F7D,
+                link: 0xf8Fb3713D459D7C1018BD0A49D19b4C44290EBE5,
                 poolAddressesProvider: 0x012bAC54348C0E635dCAc9D5FB99f06F24136C9A,
                 privateKey: vm.envUint("PRIVATE_KEY_SEP"),
                 accountAddress: vm.envAddress("ACCOUNT_ADDRESS_SEP")
@@ -33,4 +35,5 @@ contract HelperConfig is Script {
 
     function run() external {}
 }
-//0x48424f2779be0f03cDF6F02E17A591A9BF7AF89f
+//wrapped token gateway v3 - 0x387d311e47e80b498169e6fb51d3193167d89F7D
+// link - 0x779877A7B0D9E8603169DdbD7836e478b4624789

@@ -1,0 +1,38 @@
+{
+  "transactions": [
+    {
+      "hash": "0xa52170c9ded764d3fc1b40da64fd361c6c62ffee7f151c502c0d0d746ceea89d",
+      "transactionType": "CALL",
+      "contractName": "WrappedTokenGatewayV3",
+      "contractAddress": "0x387d311e47e80b498169e6fb51d3193167d89F7D",
+      "function": "depositETH(address,address,uint16)",
+      "arguments": [
+        "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951",
+        "0x09c0126087ac47816516F049fE73Ee3e8122A42c",
+        "0"
+      ],
+      "transaction": {
+        "type": "0x02",
+        "from": "0x09c0126087ac47816516f049fe73ee3e8122a42c",
+        "to": "0x387d311e47e80b498169e6fb51d3193167d89f7d",
+        "gas": "0x35c11",
+        "value": "0x38d7ea4c68000",
+        "data": "0x474cf53d0000000000000000000000006ae43d3271ff6888e7fc43fd7321a503ff73895100000000000000000000000009c0126087ac47816516f049fe73ee3e8122a42c0000000000000000000000000000000000000000000000000000000000000000",
+        "nonce": "0xe8",
+        "accessList": []
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    }
+  ],
+  "receipts": [],
+  "libraries": [],
+  "pending": [
+    "0xa52170c9ded764d3fc1b40da64fd361c6c62ffee7f151c502c0d0d746ceea89d"
+  ],
+  "returns": {},
+  "timestamp": 1701424037,
+  "chain": 11155111,
+  "multi": false,
+  "commit": "fd61391"
+}
