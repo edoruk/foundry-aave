@@ -316,6 +316,7 @@ contract AaveRepayLink is Script {
     function run() external {
         vm.startBroadcast(privateKey);
         approveAndRepay(address(pool), linkAddress, 2, accountAddress);
+        console.log("Repaid!");
         vm.stopBroadcast();
     }
 }
