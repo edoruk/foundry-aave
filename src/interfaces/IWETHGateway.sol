@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity ^0.8.18;
 
-interface WETHGetAway {
+interface IWETHGateway {
     function authorizePool(address pool) external;
 
     function borrowETH(

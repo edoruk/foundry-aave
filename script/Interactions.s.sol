@@ -7,7 +7,7 @@ import {IWETH} from "../src/interfaces/IWETH.sol";
 import {IPoolAddressesProvider} from "../src/interfaces/IPoolAddressesProvider.sol";
 import {IPool} from "../src/interfaces/IPool.sol";
 import {IERC20} from "../src/interfaces/IERC20.sol";
-import {WETHGetAway} from "../src/interfaces/IWETHGetAway.sol";
+import {IWETHGateway} from "../src/interfaces/IWETHGateway.sol";
 import {IPriceOracleGetter} from "../src/interfaces/IPriceOracleGetter.sol";
 
 contract AaveSupplyLink is Script {
@@ -321,69 +321,121 @@ contract AaveRepayLink is Script {
     }
 }
 
-contract AaveWETHGateway is Script {
-    string name;
-    address wethToken;
+contract AaveWithdrawLink is Script {
+    HelperConfig helperConfig;
+    IPool pool;
+
+    address linkAddress;
     address poolAddressesProvider;
     uint256 privateKey;
     address accountAddress;
 
-    //IWETH weth;
-    IERC20 ERC20;
-    WETHGetAway wethGateaway;
-    uint256 constant AMOUNT = 0.001 ether;
+    constructor() {
+        helperConfig = new HelperConfig();
+        (
+            ,
+            ,
+            address _linkAddress,
+            address _poolAddressesProvider,
+            uint256 _privateKey,
+            address _accountAddress
+        ) = helperConfig.activeNetworkConfig();
+
+        linkAddress = _linkAddress;
+        poolAddressesProvider = _poolAddressesProvider;
+        privateKey = _privateKey;
+        accountAddress = _accountAddress;
+
+        IPoolAddressesProvider provider = IPoolAddressesProvider(
+            poolAddressesProvider
+        );
+        pool = IPool(provider.getPool());
+    }
+
+    function withdrawlLiquidity(
+        address _tokenAddress,
+        uint256 _amount,
+        address _to
+    ) internal returns (uint256) {
+        address asset = _tokenAddress;
+        uint256 amount = _amount;
+        address to = _to;
+
+        return pool.withdraw(asset, amount, to);
+    }
+
+    function run() external {
+        vm.startBroadcast();
+        withdrawlLiquidity(linkAddress, type(uint).max, accountAddress);
+        vm.stopBroadcast();
+    }
+}
+
+contract AaveWETHGateway is Script {
+    address wethGatewayAddress;
+    address poolAddressesProvider;
+    uint256 privateKey;
+    address accountAddress;
+    IPool pool;
+    IERC20 aWethToken;
+    IWETHGateway wethGateway;
+    uint256 constant AMOUNT = 0.1 ether;
 
     constructor() {
         HelperConfig helperConfig = new HelperConfig();
-
         (
-            string memory _name,
-            address _wethToken,
+            ,
+            address _wethGatewayAddress,
             ,
             address _poolAddressesProviderAddress,
             uint256 _privateKey,
             address _accountAddress
         ) = helperConfig.activeNetworkConfig();
 
-        name = _name;
-        wethToken = _wethToken;
+        wethGatewayAddress = _wethGatewayAddress;
         poolAddressesProvider = _poolAddressesProviderAddress;
         privateKey = _privateKey;
         accountAddress = _accountAddress;
 
-        //weth = IWETH(wethToken);
-        ERC20 = IERC20(wethToken);
-        wethGateaway = WETHGetAway(wethToken);
-    }
-
-    function getPool() public view returns (IPool) {
         IPoolAddressesProvider provider = IPoolAddressesProvider(
             poolAddressesProvider
         );
-        address poolAddress = provider.getPool();
-        IPool pool = IPool(poolAddress);
-        return pool;
+        pool = IPool(provider.getPool());
+
+        aWethToken = IERC20(0x5b071b590a59395fE4025A0Ccc1FcC931AAc1830); //aWETH address from metamask
+        wethGateway = IWETHGateway(wethGatewayAddress);
     }
 
-    function approveERC20(address _spender, uint256 _amount) public {
-        console.log("Approving ERC20...");
-        //vm.startBroadcast(privateKey);
-        bool success = ERC20.approve(_spender, _amount);
-        //vm.stopBroadcast();
-        console.log("Approving is ", success);
+    function depositETH(
+        address _pool,
+        address _onBehalfOf,
+        uint256 _amount
+    ) internal {
+        wethGateway.depositETH{value: _amount}(_pool, _onBehalfOf, 0);
+    }
+
+    function approveAndWithdrawETH(
+        address _wethGateway,
+        address _pool,
+        address _onBehalfOf
+    ) public {
+        aWethToken.approve(_wethGateway, type(uint).max);
+        console.log("Approved!");
+
+        wethGateway.withdrawETH(_pool, type(uint).max, _onBehalfOf);
+        console.log("Withdrawn.");
     }
 
     function run() external {
         vm.startBroadcast(privateKey);
-        IPool pool = getPool();
-        console.log("getPool successful with address: ", address(pool));
-        console.log("Depositting...");
-        wethGateaway.depositETH{value: AMOUNT}(
+        //depositETH(address(pool), accountAddress, AMOUNT);
+        approveAndWithdrawETH(
+            address(wethGateway),
             address(pool),
-            accountAddress,
-            0
+            accountAddress
         );
-        console.log("Depositted!");
         vm.stopBroadcast();
     }
 }
+
+// aritmetic overflow or underflow occured because of wrong addresses of aWeth and wethgateway
