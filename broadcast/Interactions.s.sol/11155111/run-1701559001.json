@@ -1,0 +1,63 @@
+{
+  "transactions": [
+    {
+      "hash": "0xd8d60f0e579e2e501dbacba6804c19f8de7087dfa35da656d9f7643529ef2bd9",
+      "transactionType": "CALL",
+      "contractName": "TestnetERC20",
+      "contractAddress": "0xf8Fb3713D459D7C1018BD0A49D19b4C44290EBE5",
+      "function": "approve(address,uint256)",
+      "arguments": [
+        "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951",
+        "10000000000"
+      ],
+      "transaction": {
+        "type": "0x02",
+        "from": "0x09c0126087ac47816516f049fe73ee3e8122a42c",
+        "to": "0xf8fb3713d459d7c1018bd0a49d19b4c44290ebe5",
+        "gas": "0x10816",
+        "value": "0x0",
+        "data": "0x095ea7b30000000000000000000000006ae43d3271ff6888e7fc43fd7321a503ff73895100000000000000000000000000000000000000000000000000000002540be400",
+        "nonce": "0xf3",
+        "accessList": []
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    },
+    {
+      "hash": "0x1c1951fffad521d1c26d9b0043a1c895fb1f162346d57aeb2a069d328c47c081",
+      "transactionType": "CALL",
+      "contractName": "InitializableImmutableAdminUpgradeabilityProxy",
+      "contractAddress": "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951",
+      "function": "supply(address,uint256,address,uint16)",
+      "arguments": [
+        "0xf8Fb3713D459D7C1018BD0A49D19b4C44290EBE5",
+        "10000000000",
+        "0x09c0126087ac47816516F049fE73Ee3e8122A42c",
+        "0"
+      ],
+      "transaction": {
+        "type": "0x02",
+        "from": "0x09c0126087ac47816516f049fe73ee3e8122a42c",
+        "to": "0x6ae43d3271ff6888e7fc43fd7321a503ff738951",
+        "gas": "0x3aca1",
+        "value": "0x0",
+        "data": "0x617ba037000000000000000000000000f8fb3713d459d7c1018bd0a49d19b4c44290ebe500000000000000000000000000000000000000000000000000000002540be40000000000000000000000000009c0126087ac47816516f049fe73ee3e8122a42c0000000000000000000000000000000000000000000000000000000000000000",
+        "nonce": "0xf4",
+        "accessList": []
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    }
+  ],
+  "receipts": [],
+  "libraries": [],
+  "pending": [
+    "0xd8d60f0e579e2e501dbacba6804c19f8de7087dfa35da656d9f7643529ef2bd9",
+    "0x1c1951fffad521d1c26d9b0043a1c895fb1f162346d57aeb2a069d328c47c081"
+  ],
+  "returns": {},
+  "timestamp": 1701559001,
+  "chain": 11155111,
+  "multi": false,
+  "commit": "850785a"
+}

@@ -8,26 +8,28 @@ import {IPoolAddressesProvider} from "../src/interfaces/IPoolAddressesProvider.s
 import {IPool} from "../src/interfaces/IPool.sol";
 import {IERC20} from "../src/interfaces/IERC20.sol";
 import {WETHGetAway} from "../src/interfaces/IWETHGetAway.sol";
+import {IPriceOracleGetter} from "../src/interfaces/IPriceOracleGetter.sol";
 
 contract AaveSupply is Script {
     string tokenName;
 
     string name;
-    address wethAddress;
+    //address wethAddress;
     address linkAddress;
     address poolAddressesProvider;
     uint256 privateKey;
     address accountAddress;
     IPool public immutable pool;
     IERC20 linkToken;
-    IWETH wethToken;
+    //IWETH wethToken;
     uint256 AMOUNT;
 
     constructor() {
         HelperConfig helperConfig = new HelperConfig();
         (
             string memory _name,
-            address _wethAddress,
+            ,
+            //address _wethAddress,
             address _linkAddress,
             address _poolAddressesProvider,
             uint256 _privateKey,
@@ -35,7 +37,7 @@ contract AaveSupply is Script {
         ) = helperConfig.activeNetworkConfig();
 
         name = _name;
-        wethAddress = _wethAddress;
+        //wethAddress = _wethAddress;
         linkAddress = _linkAddress;
         poolAddressesProvider = _poolAddressesProvider;
         privateKey = _privateKey;
@@ -46,6 +48,20 @@ contract AaveSupply is Script {
         );
         pool = IPool(provider.getPool());
         linkToken = IERC20(linkAddress);
+    }
+
+    function approveLINK(
+        uint256 _amount,
+        address _poolContractAddress
+    ) public returns (bool) {
+        return linkToken.approve(_poolContractAddress, _amount);
+    }
+
+    function allowanceLINK(
+        address _poolContractAddress
+    ) public view returns (uint256) {
+        return
+            linkToken.allowance(address(accountAddress), _poolContractAddress);
     }
 
     function supplyLiquidity(address _tokenAddress, uint256 _amount) public {
@@ -68,37 +84,6 @@ contract AaveSupply is Script {
         return pool.withdraw(asset, amount, to);
     }
 
-    function getUserAccountData(
-        address _userAddress
-    )
-        public
-        view
-        returns (
-            uint256 totalCollateralBase,
-            uint256 totalDebtBase,
-            uint256 availableBorrowsBase,
-            uint256 currentLiquidationThreshold,
-            uint256 ltv,
-            uint256 healthFactor
-        )
-    {
-        return pool.getUserAccountData(_userAddress);
-    }
-
-    function approveLINK(
-        uint256 _amount,
-        address _poolContractAddress
-    ) public returns (bool) {
-        return linkToken.approve(_poolContractAddress, _amount);
-    }
-
-    function allowanceLINK(
-        address _poolContractAddress
-    ) public view returns (uint256) {
-        return
-            linkToken.allowance(address(accountAddress), _poolContractAddress);
-    }
-
     function getBalance(address _tokenAddress) external view returns (uint256) {
         return IERC20(_tokenAddress).balanceOf(address(this));
     }
@@ -114,27 +99,168 @@ contract AaveSupply is Script {
         bool success = approveLINK(AMOUNT, address(pool));
         console.log("Approving is: ", success);
         uint256 allowance = allowanceLINK(address(pool));
-        console.log("Allowance is: ", allowance);
-
+        console.log("Allowance is: %e", allowance);
         console.log("Depositting...");
         supplyLiquidity(linkAddress, AMOUNT);
-        console.log(AMOUNT, " Link is supplied.");
+        console.log("%e ETH Link supplied.", AMOUNT);
+        vm.stopBroadcast();
+    }
+}
+
+contract AaveGetUserData is Script {
+    address poolAddressesProvider;
+    uint256 privateKey;
+    address accountAddress;
+
+    IPool public immutable pool;
+
+    uint256 totalCollateralBase;
+    uint256 totalDebtBase;
+    uint256 availableBorrowsBase;
+    uint256 currentLiquidationThreshold;
+    uint256 ltv;
+    uint256 healthFactor;
+
+    constructor() {
+        HelperConfig helperConfig = new HelperConfig();
         (
-            uint256 totalCollateralBase,
-            uint256 totalDebtBase,
-            uint256 availableBorrowsBase,
-            uint256 currentLiquidationThreshold,
-            uint256 ltv,
-            uint256 healthFactor
-        ) = getUserAccountData(accountAddress);
+            ,
+            ,
+            ,
+            address _poolAddressesProvider,
+            uint256 _privateKey,
+            address _accountAddress
+        ) = helperConfig.activeNetworkConfig();
+
+        poolAddressesProvider = _poolAddressesProvider;
+        privateKey = _privateKey;
+        accountAddress = _accountAddress;
+
+        IPoolAddressesProvider provider = IPoolAddressesProvider(
+            poolAddressesProvider
+        );
+        pool = IPool(provider.getPool());
+    }
+
+    function getUserAccountData(address _userAddress) public {
+        (
+            uint256 _totalCollateralBase,
+            uint256 _totalDebtBase,
+            uint256 _availableBorrowsBase,
+            uint256 _currentLiquidationThreshold,
+            uint256 _ltv,
+            uint256 _healthFactor
+        ) = pool.getUserAccountData(_userAddress);
+        totalCollateralBase = _totalCollateralBase;
+        totalDebtBase = _totalDebtBase;
+        availableBorrowsBase = _availableBorrowsBase;
+        currentLiquidationThreshold = _currentLiquidationThreshold;
+        ltv = _ltv;
+        healthFactor = _healthFactor;
+    }
+
+    function run() external {
+        vm.startBroadcast(privateKey);
+        getUserAccountData(accountAddress);
         console.log("----ACCOUNT DETAILS----");
-        console.log("TCB: %d", totalCollateralBase);
-        console.log("ABB: %d", availableBorrowsBase);
+        console.log("TCB: %d", (totalCollateralBase));
+        console.log("ABB: %e", availableBorrowsBase);
         console.log("TDB: %d", totalDebtBase);
         console.log("CLT: %d", currentLiquidationThreshold);
         console.log("ltv: %d", ltv);
         console.log("HF: %d", healthFactor);
         console.log("------------------------");
+        vm.stopBroadcast();
+    }
+}
+
+contract AaveBorrow is Script {
+    HelperConfig helperConfig;
+
+    address linkAddress;
+    address poolAddressesProvider;
+    uint256 privateKey;
+    address accountAddress;
+
+    address priceOracleAddress;
+    IPriceOracleGetter priceOracle;
+
+    IPool pool;
+    uint256 totalCollateralBase;
+    uint256 totalDebtBase;
+    uint256 availableBorrowsBase;
+    uint256 currentLiquidationThreshold;
+    uint256 ltv;
+    uint256 healthFactor;
+
+    constructor() {
+        helperConfig = new HelperConfig();
+
+        address linkPriceAggregator = 0x14fC51b7df22b4D393cD45504B9f0A3002A63F3F;
+
+        (
+            ,
+            ,
+            address _linkAddress,
+            address _poolAddressesProvider,
+            uint256 _privateKey,
+            address _accountAddress
+        ) = helperConfig.activeNetworkConfig();
+
+        linkAddress = _linkAddress;
+        poolAddressesProvider = _poolAddressesProvider;
+        privateKey = _privateKey;
+        accountAddress = _accountAddress;
+
+        IPoolAddressesProvider provider = IPoolAddressesProvider(
+            poolAddressesProvider
+        );
+        pool = IPool(provider.getPool());
+        priceOracleAddress = provider.getPriceOracle();
+        priceOracle = IPriceOracleGetter(priceOracleAddress);
+    }
+
+    function getBorrowable(uint256 borrowable) public view returns (uint256) {
+        uint256 price = priceOracle.getAssetPrice(linkAddress);
+        console.log("Price of link token is: %d$", price / 100000000);
+        uint256 amountLinkToBorrow = (1 / price) * ((borrowable * 95) / 100);
+        console.log("Link Amount to borrow: %d ", amountLinkToBorrow);
+        return amountLinkToBorrow;
+    }
+
+    function getUserAccountData(address _userAddress) public {
+        (
+            uint256 _totalCollateralBase,
+            uint256 _totalDebtBase,
+            uint256 _availableBorrowsBase,
+            uint256 _currentLiquidationThreshold,
+            uint256 _ltv,
+            uint256 _healthFactor
+        ) = pool.getUserAccountData(_userAddress);
+        totalCollateralBase = _totalCollateralBase;
+        totalDebtBase = _totalDebtBase;
+        availableBorrowsBase = _availableBorrowsBase;
+        currentLiquidationThreshold = _currentLiquidationThreshold;
+        ltv = _ltv;
+        healthFactor = _healthFactor;
+    }
+
+    function aaveBorrow(
+        address _asset,
+        uint256 _amount,
+        uint256 _iRateMode,
+        address _onBehalfOf
+    ) public {
+        console.log("Ready to borrow...");
+        pool.borrow(_asset, _amount, _iRateMode, 0, _onBehalfOf);
+    }
+
+    function run() external {
+        vm.startBroadcast(privateKey);
+        getUserAccountData(accountAddress);
+        uint256 borrowAmount = (availableBorrowsBase * 95) / 100;
+        aaveBorrow(linkAddress, borrowAmount, 2, accountAddress);
+        console.log("Borrowed: ", borrowAmount);
 
         vm.stopBroadcast();
     }
