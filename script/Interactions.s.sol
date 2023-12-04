@@ -10,7 +10,7 @@ import {IERC20} from "../src/interfaces/IERC20.sol";
 import {WETHGetAway} from "../src/interfaces/IWETHGetAway.sol";
 import {IPriceOracleGetter} from "../src/interfaces/IPriceOracleGetter.sol";
 
-contract AaveSupply is Script {
+contract AaveSupplyLink is Script {
     string tokenName;
 
     string name;
@@ -174,7 +174,7 @@ contract AaveGetUserData is Script {
     }
 }
 
-contract AaveBorrow is Script {
+contract AaveBorrowLink is Script {
     HelperConfig helperConfig;
 
     address linkAddress;
@@ -195,9 +195,6 @@ contract AaveBorrow is Script {
 
     constructor() {
         helperConfig = new HelperConfig();
-
-        address linkPriceAggregator = 0x14fC51b7df22b4D393cD45504B9f0A3002A63F3F;
-
         (
             ,
             ,
@@ -223,7 +220,7 @@ contract AaveBorrow is Script {
     function getBorrowable(uint256 borrowable) public view returns (uint256) {
         uint256 price = priceOracle.getAssetPrice(linkAddress);
         console.log("Price of link token is: %d$", price / 100000000);
-        uint256 amountLinkToBorrow = (1 / price) * ((borrowable * 95) / 100);
+        uint256 amountLinkToBorrow = price * ((borrowable * 95) / 100);
         console.log("Link Amount to borrow: %d ", amountLinkToBorrow);
         return amountLinkToBorrow;
     }
@@ -261,7 +258,64 @@ contract AaveBorrow is Script {
         uint256 borrowAmount = (availableBorrowsBase * 95) / 100;
         aaveBorrow(linkAddress, borrowAmount, 2, accountAddress);
         console.log("Borrowed: ", borrowAmount);
+        vm.stopBroadcast();
+    }
+}
 
+contract AaveRepayLink is Script {
+    HelperConfig helperConfig;
+
+    address linkAddress;
+    address poolAddressesProvider;
+    uint256 privateKey;
+    address accountAddress;
+    IPool pool;
+    IERC20 linkToken;
+
+    uint256 totalDebtBase;
+
+    constructor() {
+        helperConfig = new HelperConfig();
+        (
+            ,
+            ,
+            address _linkAddress,
+            address _poolAddressesProvider,
+            uint256 _privateKey,
+            address _accountAddress
+        ) = helperConfig.activeNetworkConfig();
+
+        linkAddress = _linkAddress;
+        poolAddressesProvider = _poolAddressesProvider;
+        privateKey = _privateKey;
+        accountAddress = _accountAddress;
+
+        IPoolAddressesProvider provider = IPoolAddressesProvider(
+            poolAddressesProvider
+        );
+        pool = IPool(provider.getPool());
+        linkToken = IERC20(linkAddress);
+
+        (, uint256 _totalDebtBase, , , , ) = pool.getUserAccountData(
+            accountAddress
+        );
+
+        totalDebtBase = _totalDebtBase;
+    }
+
+    function approveAndRepay(
+        address _poolContractAddress,
+        address _asset,
+        uint256 _rateMode,
+        address _onBehalfOf
+    ) internal {
+        linkToken.approve(_poolContractAddress, type(uint256).max);
+        pool.repay(_asset, type(uint256).max, _rateMode, _onBehalfOf);
+    }
+
+    function run() external {
+        vm.startBroadcast(privateKey);
+        approveAndRepay(address(pool), linkAddress, 2, accountAddress);
         vm.stopBroadcast();
     }
 }
